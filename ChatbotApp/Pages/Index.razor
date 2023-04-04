@@ -1,0 +1,76 @@
+﻿@page "/"
+@using Newtonsoft.Json;
+@using System.Text;
+
+<PageTitle>Chatbot</PageTitle>
+
+<div class="container">
+    <div class="row">
+        <div class="col-4">
+            <p>@testing</p>
+        </div>
+        <div class="col-4">
+            <div class="messages">
+                @for (int i = 0; i < messages.Count; i++)
+                {
+                    @if (i % 2 == 0)
+                    {
+                        <div class="question">@messages[i]</div>
+                    } else
+                    {
+                        <div class="response">@messages[i]</div>
+                    }
+                }
+                
+            </div>
+            <div class="textMessage">
+                <input @bind="message" />
+                <button @onclick="SendMessage">Send</button>
+            </div>
+        </div>
+        <div class="col-4">
+        </div>
+
+    </div>
+</div>
+
+@code{
+    public string message;
+    public string testing;
+    public List<string> messages = new List<string>();
+    private static HttpClient Http = new HttpClient();
+
+    protected override async Task OnInitializedAsync()
+    {
+
+    }
+
+    public async Task SendMessage()
+    {
+        Http = new HttpClient();
+        messages.Add(message);
+
+        // Replace [INSERT_YOUR_OWN_API_KEY] with a valid OpenAI API key
+        var apiKey = "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";
+        Http.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
+
+        // JSON content for the API call
+        var jsonContent = new
+        {
+            prompt = message,
+            model = "text-davinci-003",
+            max_tokens = 1000
+        };
+
+        // Make the API call
+        var responseContent = await Http.PostAsync("https://api.openai.com/v1/completions", new StringContent(JsonConvert.SerializeObject(jsonContent), Encoding.UTF8, "application/json"));
+
+        // Read the response as a string
+        var resContext = await responseContent.Content.ReadAsStringAsync();
+
+        // Deserialize the response into a dynamic object
+        var data = JsonConvert.DeserializeObject<dynamic>(resContext);
+        messages.Add(data.choices[0].text.ToString());
+        StateHasChanged();
+    }
+}
